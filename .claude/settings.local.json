@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s http://localhost:5500/)",
+      "Bash(curl -s http://192.168.100.92:5500/ -o /dev/null -w \"%{http_code}\\\\n\")"
+    ]
+  }
+}

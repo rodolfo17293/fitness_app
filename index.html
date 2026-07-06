@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Mi Rutina</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2563eb">
+<link rel="icon" href="Assets/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="Assets/icon-192.png">
+</head>
+<body>
+
+<div id="app">
+
+  <header class="topbar">
+    <span class="topbar-title">Mi Rutina</span>
+    <div class="day-toggle compact topbar-day-toggle hidden" id="topbar-day-toggle">
+      <button class="day-btn active" data-day="A">Día A</button>
+      <button class="day-btn" data-day="B">Día B</button>
+    </div>
+  </header>
+
+  <main class="views">
+
+    <!-- ================= VISTA: CALENDARIO ================= -->
+    <section id="view-calendario" class="view active">
+
+      <div class="today-banner" id="today-banner">Hoy toca: —</div>
+
+      <div class="calendar-header">
+        <button id="cal-prev" class="cal-arrow" aria-label="Mes anterior">&lsaquo;</button>
+        <h2 id="cal-month-label">Mes</h2>
+        <button id="cal-next" class="cal-arrow" aria-label="Mes siguiente">&rsaquo;</button>
+      </div>
+
+      <div class="calendar-weekdays">
+        <span>D</span><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span>
+      </div>
+
+      <div class="calendar-grid" id="calendar-grid"></div>
+
+      <div class="calendar-legend">
+        <span><i class="dot planned"></i> Planificado</span>
+        <span><i class="dot done"></i> Completado</span>
+        <span><i class="dot weight"></i> Peso registrado</span>
+        <span><i class="dot weigh-plan"></i> Pesaje planificado</span>
+      </div>
+
+    </section>
+
+    <!-- ================= VISTA: RUTINA ================= -->
+    <section id="view-rutina" class="view">
+
+      <button id="btn-inspiracion" class="btn-secondary btn-inspiracion">&#128247; Inspiración</button>
+
+      <!-- TIMER -->
+      <div class="rutina-third rutina-timer-third">
+        <div id="timer-panel" class="timer-panel">
+
+          <div class="timer-settings-select">
+            <button id="timer-settings-btn" class="timer-settings-btn" aria-label="Ajustes del timer">&#9881;</button>
+            <div id="timer-settings" class="timer-settings hidden"></div>
+          </div>
+
+          <div class="timer-left-col">
+            <div class="timer-type-select">
+              <button id="timer-type-btn" class="timer-type-btn">HIIT <span class="caret">&#9662;</span></button>
+              <div id="timer-type-dropdown" class="timer-type-dropdown hidden">
+                <button data-type="EMOM">EMOM</button>
+                <button data-type="HIIT">HIIT</button>
+                <button data-type="AMRAP">AMRAP</button>
+              </div>
+            </div>
+
+            <div class="timer-status-line" id="timer-status-line">
+              <span id="timer-phase">Trabajo</span>
+              <span class="status-dot">&bull;</span>
+              <span id="timer-rounds">Ronda 1 / 8</span>
+            </div>
+
+            <div class="timer-amrap-counter hidden" id="timer-amrap-counter">
+              <button id="amrap-minus" class="amrap-btn">&minus;</button>
+              <span id="amrap-rounds">0</span>
+              <span class="amrap-label">rondas</span>
+              <button id="amrap-plus" class="amrap-btn">+</button>
+            </div>
+
+            <div class="timer-controls">
+              <button id="timer-play" class="timer-ctrl-btn timer-ctrl-primary">&#9658;</button>
+              <button id="timer-reset" class="timer-ctrl-btn">&#8635;</button>
+            </div>
+          </div>
+
+          <div class="timer-right-col">
+            <div class="timer-big-display" id="timer-big-display">00:40</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- EJERCICIO Y CHECKS -->
+      <div class="rutina-third rutina-exercise-third">
+        <div class="exercise-card">
+          <div class="exercise-position" id="exercise-position">Ejercicio 1 de 2</div>
+          <h2 id="exercise-name">Kettlebell Swings</h2>
+          <p class="exercise-meta" id="exercise-meta">5 series · 15–20 reps</p>
+          <p class="exercise-note" id="exercise-note">Pesa rosa · Explosividad y fuerza</p>
+
+          <div class="series-grid" id="series-grid"></div>
+          <div class="series-counter" id="series-counter">0 / 5 series</div>
+
+          <div class="exercise-bottom-row">
+            <button id="btn-prev" class="btn-secondary btn-icon">&larr;</button>
+            <button id="finish-workout" class="btn-primary btn-finish">Finalizar &#10003;</button>
+            <button id="btn-next" class="btn-secondary btn-icon">&rarr;</button>
+          </div>
+        </div>
+        <div id="finish-toast" class="toast hidden"></div>
+      </div>
+
+    </section>
+
+    <!-- ================= VISTA: EDITAR RUTINAS ================= -->
+    <section id="view-editar" class="view">
+
+      <div class="day-toggle compact edit-day-toggle" id="edit-day-toggle">
+        <button class="day-btn active" data-day="A">Día A</button>
+        <button class="day-btn" data-day="B">Día B</button>
+      </div>
+
+      <div class="edit-exercise-list" id="edit-exercise-list"></div>
+
+    </section>
+
+  </main>
+
+  <!-- ================= FOTO DE INSPIRACIÓN A PANTALLA COMPLETA ================= -->
+  <div id="inspiration-overlay" class="inspiration-overlay hidden">
+    <img src="Assets/Inspiracion.png" alt="Inspiración">
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-view="calendario">
+      <span class="nav-icon">&#128197;</span>
+      <span>Calendario</span>
+    </button>
+    <button class="nav-btn" data-view="rutina">
+      <span class="nav-icon">&#127947;</span>
+      <span>Rutina</span>
+    </button>
+    <button class="nav-btn" data-view="editar">
+      <span class="nav-icon">&#9999;&#65039;</span>
+      <span>Editar</span>
+    </button>
+  </nav>
+
+  <!-- ================= MODAL: EDITAR DÍA DEL CALENDARIO ================= -->
+  <div id="day-modal" class="modal hidden">
+    <div class="modal-backdrop" id="modal-backdrop"></div>
+    <div class="modal-content">
+      <h3 id="modal-date">Fecha</h3>
+      <p id="modal-status" class="modal-status"></p>
+      <div class="modal-plan-buttons">
+        <button data-plan="A" class="modal-plan-btn">Día A</button>
+        <button data-plan="B" class="modal-plan-btn">Día B</button>
+        <button data-plan="" class="modal-plan-btn modal-plan-none">Sin plan</button>
+        <button id="modal-weigh-plan-btn" type="button" class="modal-plan-btn modal-weigh-plan-btn">&#9878;&#65039; Pesarme</button>
+      </div>
+
+      <div class="modal-weight-row">
+        <label for="modal-weight-input">Peso corporal (kg)</label>
+        <div class="modal-weight-input-wrap">
+          <input type="number" class="modal-input" id="modal-weight-input" inputmode="decimal" step="0.1" min="0" placeholder="Ej. 72.5">
+          <button id="modal-weight-save" class="btn-secondary">Guardar</button>
+        </div>
+      </div>
+
+      <button id="modal-close" class="btn-secondary">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: EDITAR EJERCICIO ================= -->
+  <div id="exercise-edit-modal" class="modal hidden">
+    <div class="modal-backdrop" id="exercise-edit-backdrop"></div>
+    <div class="modal-content">
+      <h3 id="exercise-edit-title">Ejercicio</h3>
+
+      <div class="modal-field">
+        <label for="exercise-edit-series">Series</label>
+        <input type="number" class="modal-input" id="exercise-edit-series" min="1" step="1">
+      </div>
+
+      <div class="modal-field">
+        <label for="exercise-edit-reps">Reps</label>
+        <input type="text" class="modal-input" id="exercise-edit-reps" placeholder="Ej. 15–20 reps">
+      </div>
+
+      <button id="exercise-edit-save" class="btn-primary modal-save-btn">Guardar cambios</button>
+      <button id="exercise-edit-close" class="btn-secondary">Cerrar</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="rutinas.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
