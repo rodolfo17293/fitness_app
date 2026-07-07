@@ -132,6 +132,8 @@
 
       <div class="edit-exercise-list" id="edit-exercise-list"></div>
 
+      <button id="btn-add-exercise" class="btn-secondary btn-add-exercise">&#10133; Agregar ejercicio</button>
+
     </section>
 
   </main>
@@ -199,6 +201,38 @@
 
       <button id="exercise-edit-save" class="btn-primary modal-save-btn">Guardar cambios</button>
       <button id="exercise-edit-close" class="btn-secondary">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: AGREGAR / EDITAR EJERCICIO PERSONALIZADO ================= -->
+  <div id="custom-exercise-modal" class="modal hidden">
+    <div class="modal-backdrop" id="custom-exercise-backdrop"></div>
+    <div class="modal-content">
+      <h3 id="custom-exercise-title">Nuevo ejercicio</h3>
+
+      <div class="modal-field">
+        <label for="custom-exercise-name">Nombre</label>
+        <input type="text" class="modal-input" id="custom-exercise-name" placeholder="Ej. Press militar">
+      </div>
+
+      <div class="modal-field">
+        <label for="custom-exercise-series">Series</label>
+        <input type="number" class="modal-input" id="custom-exercise-series" min="1" step="1">
+      </div>
+
+      <div class="modal-field">
+        <label for="custom-exercise-reps">Reps</label>
+        <input type="text" class="modal-input" id="custom-exercise-reps" placeholder="Ej. 8–10 reps">
+      </div>
+
+      <div class="modal-field">
+        <label for="custom-exercise-nota">Nota (opcional)</label>
+        <input type="text" class="modal-input" id="custom-exercise-nota" placeholder="Ej. Pesa rosa">
+      </div>
+
+      <button id="custom-exercise-save" class="btn-primary modal-save-btn">Guardar</button>
+      <button id="custom-exercise-delete" class="btn-secondary modal-delete-btn hidden">Eliminar ejercicio</button>
+      <button id="custom-exercise-close" class="btn-secondary">Cerrar</button>
     </div>
   </div>
 

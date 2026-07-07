@@ -23,13 +23,22 @@ const KEY_HISTORY = "ff_history";
 const KEY_WEIGHT = "ff_weight";
 const KEY_WEIGH_PLAN = "ff_weigh_plan";
 const KEY_CUSTOM_RUTINAS = "ff_rutinas_custom";
+const KEY_CUSTOM_EXERCISES = "ff_custom_exercises";
+
+// Número de ejercicios originales de cada día, antes de agregar los
+// personalizados. Los ejercicios agregados por el usuario siempre van
+// después de estos, así que su índice nunca cambia entre recargas.
+const BASE_EXERCISE_COUNT = {};
+Object.keys(RUTINAS).forEach(day => { BASE_EXERCISE_COUNT[day] = RUTINAS[day].ejercicios.length; });
 
 /* ==================================================================
-   RUTINAS PERSONALIZADAS (series/reps editadas por el usuario)
-   Se guardan como overrides y se aplican sobre RUTINAS al cargar.
+   RUTINAS PERSONALIZADAS (series/reps editadas + ejercicios agregados
+   por el usuario). Se guardan aparte y se aplican sobre RUTINAS al cargar.
    ================================================================== */
 function loadCustomRutinas() { return loadJSON(KEY_CUSTOM_RUTINAS, {}); }
 function saveCustomRutinas(data) { saveJSON(KEY_CUSTOM_RUTINAS, data); }
+function loadCustomExercises() { return loadJSON(KEY_CUSTOM_EXERCISES, {}); }
+function saveCustomExercises(data) { saveJSON(KEY_CUSTOM_EXERCISES, data); }
 
 function applyCustomRutinas() {
   const custom = loadCustomRutinas();
@@ -41,6 +50,12 @@ function applyCustomRutinas() {
       if (overrides.series != null) ej.series = overrides.series;
       if (overrides.reps != null) ej.reps = overrides.reps;
     });
+  });
+
+  const customExercises = loadCustomExercises();
+  Object.keys(customExercises).forEach(day => {
+    if (!RUTINAS[day]) return;
+    (customExercises[day] || []).forEach(ej => RUTINAS[day].ejercicios.push({ ...ej }));
   });
 }
 applyCustomRutinas();
@@ -434,7 +449,13 @@ function renderEditList() {
 
     item.appendChild(info);
     item.appendChild(chevron);
-    item.addEventListener("click", () => openExerciseEditModal(editDay, i));
+    item.addEventListener("click", () => {
+      if (i < BASE_EXERCISE_COUNT[editDay]) {
+        openExerciseEditModal(editDay, i);
+      } else {
+        openCustomExerciseModal(editDay, i);
+      }
+    });
     editExerciseList.appendChild(item);
   });
 }
@@ -486,6 +507,98 @@ document.getElementById("exercise-edit-save").addEventListener("click", () => {
   renderEditList();
   renderRutina();
   closeExerciseEditModal();
+});
+
+/* ---------------- MODAL: agregar / editar / eliminar ejercicio personalizado ---------------- */
+const customExerciseModal = document.getElementById("custom-exercise-modal");
+const customExerciseTitle = document.getElementById("custom-exercise-title");
+const customExerciseName = document.getElementById("custom-exercise-name");
+const customExerciseSeries = document.getElementById("custom-exercise-series");
+const customExerciseReps = document.getElementById("custom-exercise-reps");
+const customExerciseNota = document.getElementById("custom-exercise-nota");
+const customExerciseDeleteBtn = document.getElementById("custom-exercise-delete");
+let customExerciseEditingIndex = null; // null = agregando uno nuevo
+
+function openCustomExerciseModal(day, index) {
+  editDay = day;
+  customExerciseEditingIndex = index;
+  if (index == null) {
+    customExerciseTitle.textContent = "Nuevo ejercicio";
+    customExerciseName.value = "";
+    customExerciseSeries.value = "";
+    customExerciseReps.value = "";
+    customExerciseNota.value = "";
+    customExerciseDeleteBtn.classList.add("hidden");
+  } else {
+    const ej = RUTINAS[day].ejercicios[index];
+    customExerciseTitle.textContent = ej.nombre;
+    customExerciseName.value = ej.nombre;
+    customExerciseSeries.value = ej.series;
+    customExerciseReps.value = ej.reps;
+    customExerciseNota.value = ej.nota || "";
+    customExerciseDeleteBtn.classList.remove("hidden");
+  }
+  customExerciseModal.classList.remove("hidden");
+}
+function closeCustomExerciseModal() { customExerciseModal.classList.add("hidden"); }
+
+document.getElementById("custom-exercise-close").addEventListener("click", closeCustomExerciseModal);
+document.getElementById("custom-exercise-backdrop").addEventListener("click", closeCustomExerciseModal);
+document.getElementById("btn-add-exercise").addEventListener("click", () => openCustomExerciseModal(editDay, null));
+
+document.getElementById("custom-exercise-save").addEventListener("click", () => {
+  const nombre = customExerciseName.value.trim();
+  const seriesVal = parseInt(customExerciseSeries.value, 10);
+  const reps = customExerciseReps.value.trim();
+  const nota = customExerciseNota.value.trim();
+  if (!nombre || !seriesVal || seriesVal < 1 || !reps) return;
+  const ej = { nombre, series: seriesVal, reps, nota };
+
+  const customExercises = loadCustomExercises();
+  if (!customExercises[editDay]) customExercises[editDay] = [];
+
+  if (customExerciseEditingIndex == null) {
+    // Agregar: se suma al final, tanto en memoria como en el progreso de hoy.
+    RUTINAS[editDay].ejercicios.push(ej);
+    customExercises[editDay].push({ ...ej });
+    if (!progress.checks[editDay]) progress.checks[editDay] = [];
+    progress.checks[editDay].push(new Array(seriesVal).fill(false));
+  } else {
+    // Editar uno ya agregado antes.
+    Object.assign(RUTINAS[editDay].ejercicios[customExerciseEditingIndex], ej);
+    const customIndex = customExerciseEditingIndex - BASE_EXERCISE_COUNT[editDay];
+    customExercises[editDay][customIndex] = { ...ej };
+    syncProgressChecksWithRutinas();
+  }
+
+  saveCustomExercises(customExercises);
+  saveProgress();
+  renderEditList();
+  renderRutina();
+  closeCustomExerciseModal();
+});
+
+customExerciseDeleteBtn.addEventListener("click", () => {
+  if (customExerciseEditingIndex == null) return;
+  const index = customExerciseEditingIndex;
+  const customIndex = index - BASE_EXERCISE_COUNT[editDay];
+  if (customIndex < 0) return; // por seguridad: nunca borrar un ejercicio original
+
+  RUTINAS[editDay].ejercicios.splice(index, 1);
+  if (progress.checks[editDay]) progress.checks[editDay].splice(index, 1);
+
+  const customExercises = loadCustomExercises();
+  if (customExercises[editDay]) customExercises[editDay].splice(customIndex, 1);
+  saveCustomExercises(customExercises);
+
+  if (progress.day === editDay && progress.exerciseIndex >= RUTINAS[editDay].ejercicios.length) {
+    progress.exerciseIndex = Math.max(0, RUTINAS[editDay].ejercicios.length - 1);
+  }
+  saveProgress();
+
+  renderEditList();
+  renderRutina();
+  closeCustomExerciseModal();
 });
 
 /* ==================================================================
