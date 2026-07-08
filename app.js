@@ -24,6 +24,30 @@ const KEY_WEIGHT = "ff_weight";
 const KEY_WEIGH_PLAN = "ff_weigh_plan";
 const KEY_CUSTOM_RUTINAS = "ff_rutinas_custom";
 const KEY_CUSTOM_EXERCISES = "ff_custom_exercises";
+const KEY_CUSTOM_DAYS = "ff_custom_days";
+
+function loadCustomDays() { return loadJSON(KEY_CUSTOM_DAYS, {}); }
+function saveCustomDays(data) { saveJSON(KEY_CUSTOM_DAYS, data); }
+
+// Los días personalizados (ej. "Día C") empiezan vacíos, sin ejercicios
+// propios; sus ejercicios se agregan igual que los de A/B (más abajo).
+(function mergeCustomDays() {
+  const customDays = loadCustomDays();
+  Object.keys(customDays).forEach(key => {
+    if (!RUTINAS[key]) {
+      RUTINAS[key] = { titulo: customDays[key].titulo, subtitulo: "", ejercicios: [] };
+    }
+  });
+})();
+
+function nextDayLetter() {
+  const used = Object.keys(RUTINAS);
+  for (let i = 0; i < 26; i++) {
+    const letter = String.fromCharCode(65 + i);
+    if (!used.includes(letter)) return letter;
+  }
+  return "D" + Date.now();
+}
 
 // Número de ejercicios originales de cada día, antes de agregar los
 // personalizados. Los ejercicios agregados por el usuario siempre van
@@ -118,7 +142,7 @@ syncProgressChecksWithRutinas();
 /* ==================================================================
    VISTA: RUTINA
    ================================================================== */
-const dayBtns = document.querySelectorAll("#topbar-day-toggle .day-btn");
+const topbarDayToggleEl = document.getElementById("topbar-day-toggle");
 const exercisePosition = document.getElementById("exercise-position");
 const exerciseName = document.getElementById("exercise-name");
 const exerciseMeta = document.getElementById("exercise-meta");
@@ -133,10 +157,43 @@ const finishToast = document.getElementById("finish-toast");
 function currentRutina() { return RUTINAS[progress.day]; }
 function currentEjercicio() { return currentRutina().ejercicios[progress.exerciseIndex]; }
 
+function renderTopbarDayToggle() {
+  topbarDayToggleEl.innerHTML = "";
+  Object.keys(RUTINAS).sort().forEach(key => {
+    const btn = document.createElement("button");
+    btn.className = "day-btn" + (key === progress.day ? " active" : "");
+    btn.dataset.day = key;
+    btn.textContent = RUTINAS[key].titulo || `Día ${key}`;
+    btn.addEventListener("click", () => {
+      progress.day = key;
+      progress.exerciseIndex = 0;
+      saveProgress();
+      renderRutina();
+    });
+    topbarDayToggleEl.appendChild(btn);
+  });
+}
+
 function renderRutina() {
-  dayBtns.forEach(b => b.classList.toggle("active", b.dataset.day === progress.day));
+  renderTopbarDayToggle();
 
   const ejercicios = currentRutina().ejercicios;
+  finishToast.classList.add("hidden");
+
+  if (ejercicios.length === 0) {
+    exercisePosition.textContent = "";
+    exerciseName.textContent = "Sin ejercicios todavía";
+    exerciseMeta.textContent = "";
+    exerciseNote.textContent = "Agrega ejercicios a este día desde la pestaña Editar.";
+    seriesGrid.innerHTML = "";
+    seriesCounter.textContent = "";
+    btnPrev.disabled = true;
+    btnNext.disabled = true;
+    finishBtn.disabled = true;
+    return;
+  }
+  finishBtn.disabled = false;
+
   const ej = currentEjercicio();
 
   exercisePosition.textContent = `Ejercicio ${progress.exerciseIndex + 1} de ${ejercicios.length}`;
@@ -148,7 +205,6 @@ function renderRutina() {
   btnNext.disabled = progress.exerciseIndex === ejercicios.length - 1;
 
   renderSeries();
-  finishToast.classList.add("hidden");
 }
 
 function renderSeries() {
@@ -168,15 +224,6 @@ function renderSeries() {
   const done = checks.filter(Boolean).length;
   seriesCounter.textContent = `${done} / ${checks.length} series`;
 }
-
-dayBtns.forEach(btn => {
-  btn.addEventListener("click", () => {
-    progress.day = btn.dataset.day;
-    progress.exerciseIndex = 0;
-    saveProgress();
-    renderRutina();
-  });
-});
 
 btnPrev.addEventListener("click", () => {
   if (progress.exerciseIndex > 0) {
@@ -198,7 +245,7 @@ finishBtn.addEventListener("click", () => {
   const history = loadHistory();
   history[progress.date] = progress.day;
   saveHistory(history);
-  finishToast.textContent = `✓ ¡Entrenamiento de ${progress.day === "A" ? "Día A" : "Día B"} registrado!`;
+  finishToast.textContent = `✓ ¡Entrenamiento de ${RUTINAS[progress.day].titulo} registrado!`;
   finishToast.classList.remove("hidden");
   clearTimeout(finishToastTimeout);
   finishToastTimeout = setTimeout(() => finishToast.classList.add("hidden"), 2500);
@@ -268,9 +315,11 @@ function renderTodayBanner() {
   const p = plan[today];
   const history = loadHistory();
   if (history[today]) {
-    todayBanner.textContent = `✓ Hoy ya completaste Día ${history[today]}`;
+    const titulo = RUTINAS[history[today]] ? RUTINAS[history[today]].titulo : `Día ${history[today]}`;
+    todayBanner.textContent = `✓ Hoy ya completaste ${titulo}`;
   } else if (p) {
-    todayBanner.textContent = `Hoy toca: Día ${p}`;
+    const titulo = RUTINAS[p] ? RUTINAS[p].titulo : `Día ${p}`;
+    todayBanner.textContent = `Hoy toca: ${titulo}`;
   } else {
     todayBanner.textContent = "Hoy no tienes un día planificado";
   }
@@ -341,11 +390,59 @@ function renderCalendar() {
 const dayModal = document.getElementById("day-modal");
 const modalDate = document.getElementById("modal-date");
 const modalStatus = document.getElementById("modal-status");
-const modalPlanBtns = document.querySelectorAll(".modal-plan-btn[data-plan]");
+const modalPlanButtonsEl = document.getElementById("modal-plan-buttons");
 const modalWeightInput = document.getElementById("modal-weight-input");
 const modalWeightSaveBtn = document.getElementById("modal-weight-save");
-const modalWeighPlanBtn = document.getElementById("modal-weigh-plan-btn");
 let modalSelectedDate = null;
+
+function handlePlanButtonClick(ds, value) {
+  const plan = loadPlan();
+  const current = plan[ds] || "";
+  if (value === "" || value === current) {
+    // "Sin plan", o volver a tocar el día ya seleccionado: deselecciona
+    delete plan[ds];
+  } else {
+    plan[ds] = value;
+  }
+  savePlan(plan);
+  renderModalPlanButtons(ds);
+  renderCalendar();
+  renderTodayBanner();
+}
+
+function renderModalPlanButtons(ds) {
+  const plan = loadPlan();
+  const weighPlan = loadWeighPlan();
+  const current = plan[ds] || "";
+  modalPlanButtonsEl.innerHTML = "";
+
+  Object.keys(RUTINAS).sort().forEach(key => {
+    const btn = document.createElement("button");
+    btn.className = "modal-plan-btn" + (current === key ? " active" : "");
+    btn.textContent = RUTINAS[key].titulo || `Día ${key}`;
+    btn.addEventListener("click", () => handlePlanButtonClick(ds, key));
+    modalPlanButtonsEl.appendChild(btn);
+  });
+
+  const noneBtn = document.createElement("button");
+  noneBtn.className = "modal-plan-btn modal-plan-none" + (current === "" ? " active" : "");
+  noneBtn.textContent = "Sin plan";
+  noneBtn.addEventListener("click", () => handlePlanButtonClick(ds, ""));
+  modalPlanButtonsEl.appendChild(noneBtn);
+
+  const weighBtn = document.createElement("button");
+  weighBtn.type = "button";
+  weighBtn.className = "modal-plan-btn modal-weigh-plan-btn" + (weighPlan[ds] ? " active" : "");
+  weighBtn.innerHTML = "&#9878;&#65039; Pesarme";
+  weighBtn.addEventListener("click", () => {
+    const wp = loadWeighPlan();
+    if (wp[ds]) delete wp[ds]; else wp[ds] = true;
+    saveWeighPlan(wp);
+    renderModalPlanButtons(ds);
+    renderCalendar();
+  });
+  modalPlanButtonsEl.appendChild(weighBtn);
+}
 
 function openDayModal(ds) {
   modalSelectedDate = ds;
@@ -353,33 +450,19 @@ function openDayModal(ds) {
   modalDate.textContent = dateObj.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" });
 
   const history = loadHistory();
-  const plan = loadPlan();
   const weights = loadWeights();
-  const weighPlan = loadWeighPlan();
 
   if (history[ds]) {
-    modalStatus.textContent = `Entrenamiento completado: Día ${history[ds]}`;
+    const tituloCompletado = RUTINAS[history[ds]] ? RUTINAS[history[ds]].titulo : `Día ${history[ds]}`;
+    modalStatus.textContent = `Entrenamiento completado: ${tituloCompletado}`;
   } else {
     modalStatus.textContent = "Sin entrenamiento registrado";
   }
 
-  modalPlanBtns.forEach(b => b.classList.toggle("active", (plan[ds] || "") === b.dataset.plan));
-  modalWeighPlanBtn.classList.toggle("active", !!weighPlan[ds]);
+  renderModalPlanButtons(ds);
   modalWeightInput.value = weights[ds] != null ? weights[ds] : "";
   dayModal.classList.remove("hidden");
 }
-
-modalWeighPlanBtn.addEventListener("click", () => {
-  const weighPlan = loadWeighPlan();
-  if (weighPlan[modalSelectedDate]) {
-    delete weighPlan[modalSelectedDate];
-  } else {
-    weighPlan[modalSelectedDate] = true;
-  }
-  saveWeighPlan(weighPlan);
-  modalWeighPlanBtn.classList.toggle("active", !!weighPlan[modalSelectedDate]);
-  renderCalendar();
-});
 
 modalWeightSaveBtn.addEventListener("click", () => {
   const weights = loadWeights();
@@ -396,24 +479,6 @@ modalWeightSaveBtn.addEventListener("click", () => {
   renderCalendar();
 });
 
-modalPlanBtns.forEach(btn => {
-  btn.addEventListener("click", () => {
-    const plan = loadPlan();
-    const current = plan[modalSelectedDate] || "";
-    if (btn.dataset.plan === "" || btn.dataset.plan === current) {
-      // "Sin plan", o volver a tocar el día ya seleccionado: deselecciona
-      delete plan[modalSelectedDate];
-    } else {
-      plan[modalSelectedDate] = btn.dataset.plan;
-    }
-    savePlan(plan);
-    const updated = plan[modalSelectedDate] || "";
-    modalPlanBtns.forEach(b => b.classList.toggle("active", b.dataset.plan === updated));
-    renderCalendar();
-    renderTodayBanner();
-  });
-});
-
 document.getElementById("modal-close").addEventListener("click", closeDayModal);
 document.getElementById("modal-backdrop").addEventListener("click", closeDayModal);
 function closeDayModal() { dayModal.classList.add("hidden"); }
@@ -422,11 +487,34 @@ function closeDayModal() { dayModal.classList.add("hidden"); }
    VISTA: EDITAR RUTINAS
    ================================================================== */
 let editDay = "A";
-const editDayBtns = document.querySelectorAll("#edit-day-toggle .day-btn");
+const editDayToggleEl = document.getElementById("edit-day-toggle");
 const editExerciseList = document.getElementById("edit-exercise-list");
 
+function renderEditDayToggle() {
+  editDayToggleEl.innerHTML = "";
+  Object.keys(RUTINAS).sort().forEach(key => {
+    const btn = document.createElement("button");
+    btn.className = "day-btn" + (key === editDay ? " active" : "");
+    btn.dataset.day = key;
+    btn.textContent = RUTINAS[key].titulo || `Día ${key}`;
+    btn.addEventListener("click", () => {
+      editDay = key;
+      renderEditList();
+    });
+    editDayToggleEl.appendChild(btn);
+  });
+
+  const addBtn = document.createElement("button");
+  addBtn.className = "day-add-btn";
+  addBtn.type = "button";
+  addBtn.setAttribute("aria-label", "Agregar día");
+  addBtn.textContent = "+";
+  addBtn.addEventListener("click", openAddDayModal);
+  editDayToggleEl.appendChild(addBtn);
+}
+
 function renderEditList() {
-  editDayBtns.forEach(b => b.classList.toggle("active", b.dataset.day === editDay));
+  renderEditDayToggle();
   editExerciseList.innerHTML = "";
   RUTINAS[editDay].ejercicios.forEach((ej, i) => {
     const item = document.createElement("button");
@@ -460,11 +548,36 @@ function renderEditList() {
   });
 }
 
-editDayBtns.forEach(btn => {
-  btn.addEventListener("click", () => {
-    editDay = btn.dataset.day;
-    renderEditList();
-  });
+/* ---------------- MODAL: agregar día ---------------- */
+const addDayModal = document.getElementById("add-day-modal");
+const addDayNameInput = document.getElementById("add-day-name");
+
+function openAddDayModal() {
+  addDayNameInput.value = `Día ${nextDayLetter()}`;
+  addDayModal.classList.remove("hidden");
+}
+function closeAddDayModal() { addDayModal.classList.add("hidden"); }
+
+document.getElementById("add-day-close").addEventListener("click", closeAddDayModal);
+document.getElementById("add-day-backdrop").addEventListener("click", closeAddDayModal);
+
+document.getElementById("add-day-save").addEventListener("click", () => {
+  const label = addDayNameInput.value.trim();
+  if (!label) return;
+
+  const key = nextDayLetter();
+  RUTINAS[key] = { titulo: label, subtitulo: "", ejercicios: [] };
+  BASE_EXERCISE_COUNT[key] = 0;
+  progress.checks[key] = [];
+
+  const customDays = loadCustomDays();
+  customDays[key] = { titulo: label };
+  saveCustomDays(customDays);
+  saveProgress();
+
+  editDay = key;
+  renderEditList();
+  closeAddDayModal();
 });
 
 /* ---------------- MODAL: editar series/reps de un ejercicio ---------------- */

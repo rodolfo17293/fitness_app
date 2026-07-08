@@ -16,10 +16,7 @@
 
   <header class="topbar">
     <span class="topbar-title">Mi Rutina</span>
-    <div class="day-toggle compact topbar-day-toggle hidden" id="topbar-day-toggle">
-      <button class="day-btn active" data-day="A">Día A</button>
-      <button class="day-btn" data-day="B">Día B</button>
-    </div>
+    <div class="day-toggle compact topbar-day-toggle hidden" id="topbar-day-toggle"></div>
   </header>
 
   <main class="views">
@@ -125,10 +122,7 @@
     <!-- ================= VISTA: EDITAR RUTINAS ================= -->
     <section id="view-editar" class="view">
 
-      <div class="day-toggle compact edit-day-toggle" id="edit-day-toggle">
-        <button class="day-btn active" data-day="A">Día A</button>
-        <button class="day-btn" data-day="B">Día B</button>
-      </div>
+      <div class="day-toggle compact edit-day-toggle" id="edit-day-toggle"></div>
 
       <div class="edit-exercise-list" id="edit-exercise-list"></div>
 
@@ -164,12 +158,7 @@
     <div class="modal-content">
       <h3 id="modal-date">Fecha</h3>
       <p id="modal-status" class="modal-status"></p>
-      <div class="modal-plan-buttons">
-        <button data-plan="A" class="modal-plan-btn">Día A</button>
-        <button data-plan="B" class="modal-plan-btn">Día B</button>
-        <button data-plan="" class="modal-plan-btn modal-plan-none">Sin plan</button>
-        <button id="modal-weigh-plan-btn" type="button" class="modal-plan-btn modal-weigh-plan-btn">&#9878;&#65039; Pesarme</button>
-      </div>
+      <div class="modal-plan-buttons" id="modal-plan-buttons"></div>
 
       <div class="modal-weight-row">
         <label for="modal-weight-input">Peso corporal (kg)</label>
@@ -233,6 +222,22 @@
       <button id="custom-exercise-save" class="btn-primary modal-save-btn">Guardar</button>
       <button id="custom-exercise-delete" class="btn-secondary modal-delete-btn hidden">Eliminar ejercicio</button>
       <button id="custom-exercise-close" class="btn-secondary">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: AGREGAR DÍA ================= -->
+  <div id="add-day-modal" class="modal hidden">
+    <div class="modal-backdrop" id="add-day-backdrop"></div>
+    <div class="modal-content">
+      <h3>Nuevo día</h3>
+
+      <div class="modal-field">
+        <label for="add-day-name">Nombre del día</label>
+        <input type="text" class="modal-input" id="add-day-name" placeholder="Ej. Día C">
+      </div>
+
+      <button id="add-day-save" class="btn-primary modal-save-btn">Crear día</button>
+      <button id="add-day-close" class="btn-secondary">Cerrar</button>
     </div>
   </div>
 

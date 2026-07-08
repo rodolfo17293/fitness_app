@@ -54,11 +54,11 @@ html, body {
   color: var(--primary-darker);
 }
 .topbar .day-toggle.compact {
-  width: 156px;
+  width: auto;
   margin: 0;
 }
 .topbar .day-toggle.compact .day-btn {
-  padding: 5px 0;
+  padding: 5px 12px;
   font-size: 11px;
 }
 .topbar-day-toggle.hidden { display: none; }
@@ -124,15 +124,31 @@ html, body {
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
 }
 .day-toggle.compact {
-  width: 200px;
+  width: auto;
   margin: 0 auto;
   padding: 3px;
   flex: 0 0 auto;
 }
 .day-toggle.compact .day-btn {
-  padding: 6px 0;
+  padding: 6px 14px;
   font-size: 12px;
+  flex: 0 0 auto;
 }
+.day-add-btn {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  margin-left: 2px;
+  border: none;
+  border-radius: 50%;
+  background: var(--primary-lighter);
+  color: var(--primary);
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+.day-add-btn:active { background: var(--primary-light); }
 
 /* ===================== FOTO DE INSPIRACIÓN (pantalla completa) ===================== */
 .inspiration-overlay {
@@ -284,6 +300,7 @@ html, body {
 }
 .btn-finish { flex: 1 1 auto; }
 .btn-primary:active { transform: scale(0.98); }
+.btn-primary:disabled { opacity: 0.4; cursor: default; box-shadow: none; }
 
 .toast {
   position: absolute;
