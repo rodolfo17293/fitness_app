@@ -213,23 +213,25 @@ html, body {
 }
 
 .series-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-content: center;
+  gap: 10px;
   margin-bottom: 4px;
   flex: 1 1 0;
   min-height: 0;
-  align-content: center;
+  overflow: hidden;
 }
 .series-check {
-  width: clamp(28px, min(22cqh, 15cqi), 54px);
+  width: clamp(32px, 24cqh, 72px);
   aspect-ratio: 1;
-  margin: 0 auto;
+  flex: 0 0 auto;
   border-radius: 50%;
   border: 2px solid var(--primary-light);
   background: var(--primary-lighter);
   color: var(--primary);
-  font-size: clamp(12px, min(8cqh, 6cqi), 18px);
+  font-size: clamp(14px, 10cqh, 26px);
   font-weight: 700;
   display: flex;
   align-items: center;
